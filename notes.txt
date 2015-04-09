@@ -1,0 +1,100 @@
+ubuntu@ubuntu-armhf:~$ sudo bash
+root@ubuntu-armhf:~# cd /lib/firmware/    
+root@ubuntu-armhf:/lib/firmware# cat bone_eqep2alt.dts 
+/*
+ * Copyright (C) 2013 Nathaniel R. Lewis - http://teknoman117.wordpress.com/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ * 
+ * Enable eQEP2 on the Beaglebone White and Black
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "ti,beaglebone", "ti,beaglebone-black";
+
+    /* identification */
+    part-number = "bone_eqep2";
+    version     = "00A0";
+
+    fragment@0 {
+        target = <&am33xx_pinmux>;
+        __overlay__ {
+            pinctrl_eqep2: pinctrl_eqep2_pins {
+                pinctrl-single,pins = <					 				   
+                        0x038 0x24  /* P8_16 = GPIO2_14 = EQEP2_index, MODE4 */
+                        0x03C 0x24  /* P8_15 = GPIO2_15 = EQEP2_strobe, MODE4 */
+                        0x030 0x34  /* P8_12 = GPIO2_12 = EQEP2A_in, MODE4 */
+                        0x034 0x34  /* P8_11 = GPIO2_13 = EQEP2B_in, MODE4 */
+                >;
+            };
+        };
+    };
+    
+    fragment@1 {
+        target = <&epwmss2>;
+        __overlay__ {
+            status = "okay";
+        };
+    };
+    
+    fragment@2 {
+    	target = <&eqep2>;
+    	__overlay__ {
+            pinctrl-names = "default";
+            pinctrl-0 = <&pinctrl_eqep2>;
+            
+            count_mode = <0>;  /* 0 - Quadrature mode, normal 90 phase offset cha & chb.  1 - Direction mode.  cha input = clock, chb input = direction */
+            swap_inputs = <0>; /* Are channel A and channel B swapped? (0 - no, 1 - yes) */
+            invert_qa = <1>;   /* Should we invert the channel A input?  */
+            invert_qb = <1>;   /* Should we invert the channel B input? I invert these because my encoder outputs drive transistors that pull down the pins */
+            invert_qi = <0>;   /* Should we invert the index input? */
+            invert_qs = <0>;   /* Should we invert the strobe input? */
+            
+	        status = "okay";
+    	};
+    };
+};
+root@ubuntu-armhf:/lib/firmware# echo bone_eqep2alt > $SLOTS
+root@ubuntu-armhf:/lib/firmware# cat $SLOTS
+ 0: 54:PF--- 
+ 1: 55:PF--- 
+ 2: 56:PF--- 
+ 3: 57:PF--- 
+ 4: ff:P-O-L Bone-LT-eMMC-2G,00A0,Texas Instrument,BB-BONE-EMMC-2G
+ 5: ff:P-O-L Bone-Black-HDMI,00A0,Texas Instrument,BB-BONELT-HDMI
+ 7: ff:P-O-L Override Board Name,00A0,Override Manuf,bone_eqep2alt
+root@ubuntu-armhf:/lib/firmware# cat $PINS | grep 834
+pin 13 (44e10834) 00000034 pinctrl-single 
+root@ubuntu-armhf:/lib/firmware# cat $PINS | grep 830
+pin 12 (44e10830) 00000034 pinctrl-single 
+root@ubuntu-armhf:/lib/firmware# cd /sys/devices/ocp.3/48304000.epwmss/48304180.eqep/
+root@ubuntu-armhf:/sys/devices/ocp.3/48304000.epwmss/48304180.eqep# ls
+driver  enabled  modalias  mode  period  position  power  subsystem  uevent
+root@ubuntu-armhf:/sys/devices/ocp.3/48304000.epwmss/48304180.eqep# cat enabled 
+1
+root@ubuntu-armhf:/sys/devices/ocp.3/48304000.epwmss/48304180.eqep# cat mode 
+0
+root@ubuntu-armhf:/sys/devices/ocp.3/48304000.epwmss/48304180.eqep# cat period 
+1000000000
+root@ubuntu-armhf:/sys/devices/ocp.3/48304000.epwmss/48304180.eqep/power# cd ..
+root@ubuntu-armhf:/sys/devices/ocp.3/48304000.epwmss/48304180.eqep# while [[ 1 ]] 
+> do
+> cat position 
+> sleep 1 
+> done
+0
+0
+0
+1
+1
+1
+2
+4
+5
+7
+10
+14
